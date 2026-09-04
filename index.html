@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#1a0f0a" />
+<title>Oreo Spend Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
+  <script src="config.js" defer></script>
+  <script src="app.js" defer></script>
+
+</head>
+<body>
+<div class="bg-glow" aria-hidden="true"></div>
+<header class="site-header">
+<div class="brand">
+<span class="brand-emoji" aria-hidden="true">&#128049;</span>
+<div>
+<h1>Oreo Spend</h1>
+<p class="tagline">Kitten care tracker</p>
+</div>
+</div>
+<button type="button" id="refreshBtn" class="btn btn-ghost" title="Refresh data">&#8635; Refresh</button>
+</header>
+<div id="setupBanner" class="banner banner-setup hidden" role="status">
+<strong>Setup needed.</strong>
+Set <code>APPS_SCRIPT_URL</code> in <code>config.js</code> after deploying the Apps Script web app.
+Sheet (v2 copy):
+<a href="https://docs.google.com/spreadsheets/d/1YrAUQRYp0Ln4qDVWl2wJ7zL8l7BfiSS5rqDzrEgLMm8/edit" target="_blank" rel="noopener">open Oreo sheet</a>.
+See README for full steps.
+</div>
+<div id="errorBanner" class="banner banner-error hidden" role="alert"></div>
+<div id="successBanner" class="banner banner-success hidden" role="status"></div>
+<main>
+
+<section class="kpis" id="kpiSection" aria-label="Key metrics">
+<article class="kpi-card"><span class="kpi-label">Total spent</span><span class="kpi-value" id="kpiTotal">&#8212;</span></article>
+<article class="kpi-card"><span class="kpi-label">This month</span><span class="kpi-value" id="kpiMonth">&#8212;</span></article>
+<article class="kpi-card"><span class="kpi-label">Transactions</span><span class="kpi-value" id="kpiCount">&#8212;</span></article>
+<article class="kpi-card"><span class="kpi-label">Avg / txn</span><span class="kpi-value" id="kpiAvg">&#8212;</span></article>
+</section>
+
+
+<section class="charts" aria-label="Charts">
+<article class="card chart-card"><h2>By category</h2><div class="chart-wrap"><canvas id="chartCategory"></canvas></div></article>
+<article class="card chart-card"><h2>By month</h2><div class="chart-wrap"><canvas id="chartMonth"></canvas></div></article>
+<article class="card chart-card"><h2>Top merchants</h2><div class="chart-wrap"><canvas id="chartMerchant"></canvas></div></article>
+<article class="card chart-card"><h2>One-time vs recurring</h2><div class="chart-wrap"><canvas id="chartRecurring"></canvas></div></article>
+</section>
+
+
+<section class="grid-two">
+<article class="card form-card">
+<h2>Add expense</h2>
+<form id="expenseForm" novalidate>
+<div class="form-row"><label for="fDate">Date <span class="req">*</span></label><input type="date" id="fDate" name="date" required /></div>
+<div class="form-row"><label for="fMerchant">Merchant / Store <span class="req">*</span></label><input type="text" id="fMerchant" name="merchant" required placeholder="Chewy, Vet clinic…" autocomplete="organization" /></div>
+<div class="form-row"><label for="fDescription">Description</label><input type="text" id="fDescription" name="description" placeholder="What was it for?" /></div>
+<div class="form-row two-col">
+<div><label for="fCategory">Category <span class="req">*</span></label>
+<select id="fCategory" name="category" required>
+<option value="">Select…</option>
+<option>Misc/Household</option>
+<option>Adoption &amp; Licensing</option>
+<option>Insurance</option>
+<option>Litter &amp; Hygiene</option>
+<option>Food &amp; Treats</option>
+<option>Vet – Routine</option>
+<option>Vet – Emergency</option>
+<option>Toys &amp; Enrichment</option>
+<option>Grooming</option>
+</select></div>
+<div><label for="fSubcategory">Subcategory</label><input type="text" id="fSubcategory" name="subcategory" placeholder="Optional" /></div>
+</div>
+<div class="form-row two-col">
+<div><label for="fRecurring">One-time vs Recurring</label>
+<select id="fRecurring" name="recurring"><option>One-time</option><option>Recurring</option></select></div>
+<div><label for="fPayment">Payment Method</label>
+<select id="fPayment" name="paymentMethod"><option selected>Card</option><option>Cash</option><option>Venmo</option><option>Other</option></select></div>
+</div>
+<div class="form-row two-col">
+<div><label for="fAmount">Amount <span class="req">*</span></label><input type="number" id="fAmount" name="amount" required min="0" step="0.01" placeholder="0.00" inputmode="decimal" /></div>
+<div><label for="fEnteredBy">Entered By</label><input type="text" id="fEnteredBy" name="enteredBy" placeholder="Optional" autocomplete="name" /></div>
+</div>
+<div class="form-row"><label for="fNotes">Notes</label><textarea id="fNotes" name="notes" rows="2" placeholder="Optional notes"></textarea></div>
+<div class="form-actions">
+<button type="submit" class="btn btn-primary" id="submitBtn">Add expense</button>
+<button type="reset" class="btn btn-ghost">Clear</button>
+</div>
+</form>
+</article>
+<article class="card table-card">
+<div class="table-header"><h2>Transactions</h2>
+<input type="search" id="tableFilter" placeholder="Filter…" aria-label="Filter transactions" /></div>
+<div class="table-scroll">
+<table id="txnTable">
+<thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th>Amount</th><th>Type</th></tr></thead>
+<tbody id="txnBody"><tr class="empty-row"><td colspan="5">Loading…</td></tr></tbody>
+</table>
+</div>
+</article>
+</section>
+
+</main>
+<footer class="site-footer">
+<p>Oreo Spend Dashboard · data from Google Sheets via Apps Script</p>
+</footer>
+</body>
+</html>
